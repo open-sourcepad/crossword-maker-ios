@@ -51,6 +51,19 @@ class ViewController: UIViewController {
         return tableview
     }()
 
+    private lazy var activityView: UIView = {
+        let view: UIView = UIView(frame: self.view.bounds)
+        view.backgroundColor = UIColor(white: 0, alpha: 0.8)
+        
+        let activityIndicator: UIActivityIndicatorView = UIActivityIndicatorView(activityIndicatorStyle: .WhiteLarge)
+        activityIndicator.center = view.center
+        activityIndicator.startAnimating()
+        
+        view.addSubview(activityIndicator)
+        
+        return view
+    }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
@@ -70,6 +83,8 @@ class ViewController: UIViewController {
             self.sendWords(allKeys, completed: { 
                 self.layoutWordsAndHints()
             })
+            
+            self.activityView.hidden = false
         }
         alert!.addAction(doneAction)
         
@@ -84,6 +99,7 @@ class ViewController: UIViewController {
         
         self.presentViewController(alert!, animated: true) { 
             self.alert!.view.addSubview(self.addAnotherButton)
+            self.activityView.hidden = true
         }
     }
     
@@ -100,6 +116,7 @@ class ViewController: UIViewController {
         
         self.view.addSubview(self.acrossHintsTableView)
         self.view.addSubview(self.downwardHintsTableView)
+        self.view.addSubview(self.activityView)
     }
     
     private func saveWordsAndHint() {
@@ -130,6 +147,7 @@ class ViewController: UIViewController {
                 let letterBox = LetterBox(frame: CGRectMake(x, y, width, height))
                 letterBox.column = column
                 letterBox.row = row
+                letterBox.delegate = self
                 
                 let indexPath = NSIndexPath(forRow: row, inSection: column)
                 self.letterBoxes[indexPath] = letterBox
@@ -143,9 +161,10 @@ class ViewController: UIViewController {
         for (indexPath, letter) in self.grid {
             if let letterbox = self.letterBoxes[indexPath] {
                 letterbox.hiddenLetter = letter
-                letterbox.text = letter
+                //letterbox.text = letter
                 if letterbox.hiddenLetter == "_" || letterbox.hiddenLetter == "" {
                     letterbox.backgroundColor = UIColor.blackColor()
+                    letterbox.enabled = false
                 } else {
                     letterbox.backgroundColor = UIColor.whiteColor()
                 }
@@ -154,6 +173,8 @@ class ViewController: UIViewController {
         
         self.acrossHintsTableView.reloadData()
         self.downwardHintsTableView.reloadData()
+        
+        self.activityView.hidden = true
     }
     
     
@@ -299,5 +320,22 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
         } else {
             return "Across"
         }
+    }
+}
+
+extension ViewController: UITextFieldDelegate {
+    func textField(textField: UITextField, shouldChangeCharactersInRange range: NSRange, replacementString string: String) -> Bool {
+        if let letterbox = textField as? LetterBox {
+            let indexPath = NSIndexPath(forRow: letterbox.row, inSection: letterbox.column)
+            if let letter = grid[indexPath] {
+                if letter.lowercaseString == string.lowercaseString {
+                    letterbox.backgroundColor = UIColor.whiteColor()
+                } else {
+                    letterbox.backgroundColor = UIColor.yellowColor()
+                }
+            }
+        }
+        
+        return true
     }
 }
